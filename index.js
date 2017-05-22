@@ -37,13 +37,14 @@ function checkDirectory(d, options) {
         if (options.push) {
           spinner.info(`${d} - Forcing push`);
           let cmd1 = `cd ${d} && git push`;
-          return execP(cmd1).then(({ error, stderr }) => {
-            if (!error) {
+          return execP(cmd1).then(
+            () => {
               spinner.success(`${d} - Correctly pushed`);
-            } else {
+            },
+            ({ stderr }) => {
               spinner.fail(`${d} - Got error ${stderr}`);
             }
-          });
+          );
         } else {
           spinner.warn(`${d} - Some commits should be pushed into remote`);
         }
