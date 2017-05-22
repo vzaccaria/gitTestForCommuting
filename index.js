@@ -2,8 +2,54 @@
 let $s = require("shelljs");
 let $m = require("moment");
 let _ = require("lodash");
+let Promise = require("bluebird");
+const prog = require("caporal");
+const path = require("path");
+const ora = require("ora");
+const debug = require("debug")("gitTest");
+const process = require("process");
 
-function main() {
+let execP = command => {
+  return new Promise((resolve, reject) => {
+    require("child_process").exec(command, (error, stdout, stderr) => {
+      debug({ error, stdout, stderr });
+      if (error) {
+        reject({ error, stdout, stderr });
+      } else {
+        resolve({ error, stdout, stderr });
+      }
+    });
+  });
+};
+
+function checkDirectory(d) {
+  let spinner = ora(`${d} - Checking`).start();
+  let command = `cd ${d} && git status`;
+  return execP(command).then(({ stdout }) => {
+    let isClean = new RegExp("nothing to commit, working directory clean");
+    let toCommit = new RegExp("Changes not staged for commit");
+    let commitBehind = new RegExp("commit behind");
+    if (isClean.test(stdout)) {
+      spinner.succeed(`${d} - Clean, nothing to commit`);
+    } else {
+      if (toCommit.test(stdout)) {
+        spinner.fail(`${d} - Not clean.`);
+      } else {
+        if (commitBehind.test(stdout)) {
+          spinner.warn(`${d} - Some commits behind`);
+        } else {
+          spinner.info(`${d} - Unknown result`);
+        }
+      }
+    }
+  });
+}
+
+function main(target) {
+  if (!path.isAbsolute(target)) {
+    target = path.resolve(process.cwd(), target);
+  }
+  $s.cd(target);
   let files = $s.ls("-dl", "*");
   let directories = _.filter(files, f => f.isDirectory());
   directories = _.filter(directories, f => {
@@ -15,11 +61,19 @@ function main() {
       return false;
     }
   });
-  _.map(directories, d => {
-    console.log(`\n\n\nDirectory: ${d.name} `);
-    console.log(`---`);
-    $s.exec(`echo "Evaluating ${d.name}" && cd ${d.name} && git status`);
-  });
+  Promise.all(
+    _.map(directories, d => {
+      checkDirectory(d.name);
+    })
+  );
 }
 
-main();
+prog
+  .version("1.0.0")
+  .description("Verifies git status of a target directory")
+  .argument("<target>", "target directory")
+  .action(function({ target }, options) {
+    main(target);
+  });
+
+prog.parse(process.argv);
