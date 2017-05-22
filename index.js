@@ -50,7 +50,7 @@ function checkDirectory(d, options) {
         }
       } else {
         if (isClean.test(stdout)) {
-          spinner.succeed(`${d} - Clean, nothing to commit`);
+          spinner.succeed(`${d}`);
         } else {
           spinner.info(`${d} - Unknown result`);
         }
