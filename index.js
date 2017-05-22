@@ -28,15 +28,16 @@ function checkDirectory(d) {
   return execP(command).then(({ stdout }) => {
     let isClean = new RegExp("nothing to commit, working directory clean");
     let toCommit = new RegExp("Changes not staged for commit");
-    let commitBehind = new RegExp("commit behind");
-    if (isClean.test(stdout)) {
-      spinner.succeed(`${d} - Clean, nothing to commit`);
+    let commitAhead = new RegExp("Your branch is ahead");
+
+    if (toCommit.test(stdout)) {
+      spinner.fail(`${d} - Not clean.`);
     } else {
-      if (toCommit.test(stdout)) {
-        spinner.fail(`${d} - Not clean.`);
+      if (commitAhead.test(stdout)) {
+        spinner.warn(`${d} - Some commits should be pushed into remote`);
       } else {
-        if (commitBehind.test(stdout)) {
-          spinner.warn(`${d} - Some commits behind`);
+        if (isClean.test(stdout)) {
+          spinner.succeed(`${d} - Clean, nothing to commit`);
         } else {
           spinner.info(`${d} - Unknown result`);
         }
