@@ -39,7 +39,7 @@ function checkDirectory(d, options) {
           let cmd1 = `cd ${d} && git push`;
           return execP(cmd1).then(
             () => {
-              spinner.success(`${d} - Correctly pushed`);
+              spinner.succeed(`${d} - Correctly pushed`);
             },
             ({ stderr }) => {
               spinner.fail(`${d} - Got error ${stderr}`);
