@@ -22,7 +22,7 @@ let execP = command => {
   });
 };
 
-function checkDirectory(d) {
+function checkDirectory(d, options) {
   let spinner = ora(`${d} - Checking`).start();
   let command = `cd ${d} && git status`;
   return execP(command).then(({ stdout }) => {
@@ -34,7 +34,19 @@ function checkDirectory(d) {
       spinner.fail(`${d} - Not clean.`);
     } else {
       if (commitAhead.test(stdout)) {
-        spinner.warn(`${d} - Some commits should be pushed into remote`);
+        if (options.push) {
+          spinner.info(`${d} - Forcing push`);
+          let cmd1 = `cd ${d} && git push`;
+          return execP(cmd1).then(({ error, stderr }) => {
+            if (!error) {
+              spinner.success(`${d} - Correctly pushed`);
+            } else {
+              spinner.fail(`${d} - Got error ${stderr}`);
+            }
+          });
+        } else {
+          spinner.warn(`${d} - Some commits should be pushed into remote`);
+        }
       } else {
         if (isClean.test(stdout)) {
           spinner.succeed(`${d} - Clean, nothing to commit`);
@@ -46,15 +58,14 @@ function checkDirectory(d) {
   });
 }
 
-function main(target) {
+function main(target, options) {
   if (!path.isAbsolute(target)) {
     target = path.resolve(process.cwd(), target);
   }
-  $s.cd(target);
-  let files = $s.ls("-dl", "*");
+  let files = $s.ls("-dl", `${target}/*`);
   let directories = _.filter(files, f => f.isDirectory());
   directories = _.filter(directories, f => {
-    let ref = $m().subtract(10, "day");
+    let ref = $m().subtract(options.from, "day");
     let ft = $m(f.mtime);
     if ($m(f.mtime).isAfter(ref)) {
       return true;
@@ -64,7 +75,7 @@ function main(target) {
   });
   Promise.all(
     _.map(directories, d => {
-      checkDirectory(d.name);
+      checkDirectory(d.name, options);
     })
   );
 }
@@ -72,9 +83,15 @@ function main(target) {
 prog
   .version("1.0.0")
   .description("Verifies git status of a target directory")
-  .argument("<target>", "target directory")
+  .argument("<target...>", "target directory")
+  .option("--from <days>", "Look <days> behind", prog.INT, 10)
+  .option("--push", "Force push of branches that are ahead")
   .action(function({ target }, options) {
-    main(target);
+    Promise.all(
+      _.map(target, t => {
+        main(t, options);
+      })
+    );
   });
 
 prog.parse(process.argv);
