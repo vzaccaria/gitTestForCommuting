@@ -1,16 +1,19 @@
 {
-  "name": "gittestforcommuting",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "lodash": "4.17.4",
-    "moment": "2.18.1",
-    "shelljs": "0.7.7"
-  }
+    "name": "gittestforcommuting",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "bin": {
+        "gittestforcommuting": "./index.js"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "lodash": "4.17.4",
+        "moment": "2.18.1",
+        "shelljs": "0.7.7"
+    }
 }
