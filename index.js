@@ -29,8 +29,8 @@ function checkDirectory(d, options) {
     let isClean = new RegExp("nothing to commit, working directory clean");
     let toCommit = new RegExp("Changes not staged for commit");
     let commitAhead = new RegExp("Your branch is ahead");
-
-    if (toCommit.test(stdout)) {
+    let untrackedFiles = new RegExp("untracked files present");
+    if (toCommit.test(stdout) || untrackedFiles.test(stdout)) {
       spinner.fail(`${d} - Not clean.`);
     } else {
       if (commitAhead.test(stdout)) {
