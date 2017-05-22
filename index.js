@@ -36,13 +36,14 @@ function checkDirectory(d, options) {
       if (commitAhead.test(stdout)) {
         if (options.push) {
           spinner.info(`${d} - Forcing push`);
+          let pspinner = ora(`${d} - Pushing`).start();
           let cmd1 = `cd ${d} && git push`;
           return execP(cmd1).then(
             () => {
-              spinner.succeed(`${d} - Correctly pushed`);
+              pspinner.succeed(`${d} - Correctly pushed`);
             },
             ({ stderr }) => {
-              spinner.fail(`${d} - Got error ${stderr}`);
+              pspinner.fail(`${d} - Got error ${stderr}`);
             }
           );
         } else {
