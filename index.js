@@ -26,7 +26,7 @@ function checkDirectory(d, options) {
   let spinner = ora(`${d} - Checking`).start();
   let command = `cd ${d} && git status`;
   return execP(command).then(({ stdout }) => {
-    let isClean = new RegExp("nothing to commit, working directory clean");
+    let isClean = new RegExp("nothing to commit");
     let toCommit = new RegExp("Changes not staged for commit");
     let commitAhead = new RegExp("Your branch is ahead");
     let untrackedFiles = new RegExp("untracked files present");
@@ -53,7 +53,7 @@ function checkDirectory(d, options) {
         if (isClean.test(stdout)) {
           spinner.succeed(`${d}`);
         } else {
-          spinner.info(`${d} - Unknown result`);
+          spinner.info(`${d} - Unknown result - ${stdout}`);
         }
       }
     }
