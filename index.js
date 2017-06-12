@@ -65,22 +65,35 @@ function checkDirectory(d, options) {
   );
 }
 
+function getDirectories(target, options) {
+  let files = $s.ls("-dl", `${target}/*`);
+  let directories = _.filter(files, f => f.isDirectory());
+  if (options.depth1) {
+    directories = _.flatMap(directories, d => {
+      let fl = $s.ls("-dl", `${d.name}/*`);
+      return _.filter(fl, f => f.isDirectory());
+    });
+  }
+  return directories;
+}
+
 function main(target, options) {
   if (!path.isAbsolute(target)) {
     target = path.resolve(process.cwd(), target);
   }
   if (!options.exact) {
-    let files = $s.ls("-dl", `${target}/*`);
-    let directories = _.filter(files, f => f.isDirectory());
-    directories = _.filter(directories, f => {
-      let ref = $m().subtract(options.from, "day");
-      let ft = $m(f.mtime);
-      if ($m(f.mtime).isAfter(ref)) {
-        return true;
-      } else {
-        return false;
-      }
-    });
+    let directories = getDirectories(target, options);
+    if (options.from > 0) {
+      directories = _.filter(directories, f => {
+        let ref = $m().subtract(options.from, "day");
+        let ft = $m(f.mtime);
+        if ($m(f.mtime).isAfter(ref)) {
+          return true;
+        } else {
+          return false;
+        }
+      });
+    }
     return Promise.all(
       _.map(directories, d => {
         checkDirectory(d.name, options);
@@ -95,9 +108,10 @@ prog
   .version("1.0.0")
   .description("Verifies git status of a target directory")
   .argument("<target...>", "target directory")
-  .option("--from <days>", "Look <days> behind", prog.INT, 10)
+  .option("--from <days>", "Look <days> behind (0 = all)", prog.INT, 10)
   .option("--push", "Force push of branches that are ahead")
   .option("--exact", "Targets are already git level repos")
+  .option("--depth1", "Look into subdirectories")
   .action(function({ target }, options) {
     return Promise.all(
       _.map(target, t => {
