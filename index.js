@@ -192,19 +192,19 @@ function downSyncAll(target, options) {
 function callUpDownSync(dir, { file }) {
   if (!path.isAbsolute(file) && file[0] !== "~") {
     file = path.resolve(process.cwd(), file);
-    let dta = require(file);
-    return Promise.all(
-      _.map(dta, d => {
-        d.from = _.get(d, "from", 10);
-        d.exact = _.get(d, "exact", false);
-        if (dir === "upsync") {
-          upSyncAll(d.target, d.options);
-        } else {
-          downSyncAll(d.target, d.options);
-        }
-      })
-    );
   }
+  let dta = require(file);
+  return Promise.all(
+    _.map(dta, d => {
+      d.from = _.get(d, "from", 10);
+      d.exact = _.get(d, "exact", false);
+      if (dir === "upsync") {
+        upSyncAll(d.target, d.options);
+      } else {
+        downSyncAll(d.target, d.options);
+      }
+    })
+  );
 }
 
 prog
