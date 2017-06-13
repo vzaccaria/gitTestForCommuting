@@ -173,6 +173,40 @@ function downsync(target, options) {
   }
 }
 
+function upSyncAll(target, options) {
+  return Promise.all(
+    _.map(target, t => {
+      upsync(t, options);
+    })
+  );
+}
+
+function downSyncAll(target, options) {
+  return Promise.all(
+    _.map(target, t => {
+      downsync(t, options);
+    })
+  );
+}
+
+function callUpDownSync(dir, { file }) {
+  if (!path.isAbsolute(file)) {
+    file = path.resolve(process.cwd(), file);
+    let dta = require(file);
+    return Promise.all(
+      _.map(dta, d => {
+        d.from = _.get(d, "from", 10);
+        d.exact = _.get(d, "exact", false);
+        if (dir === "upsync") {
+          upSyncAll(d.target, d.options);
+        } else {
+          downSyncAll(d.target, d.options);
+        }
+      })
+    );
+  }
+}
+
 prog
   .version("1.0.0")
   .description("Verifies git status of a target directory")
@@ -186,11 +220,7 @@ prog
   .option("--exact", "Targets are already git level repos")
   .option("--depth1", "Look into subdirectories")
   .action(function({ target }, options) {
-    return Promise.all(
-      _.map(target, t => {
-        upsync(t, options);
-      })
-    );
+    upSyncAll(target, options);
   })
   .command("downsync", "Fetches and optionally pulls from origin.")
   .argument("<target...>", "target directory")
@@ -199,11 +229,13 @@ prog
   .option("--exact", "Targets are already git level repos")
   .option("--depth1", "Look into subdirectories")
   .action(function({ target }, options) {
-    return Promise.all(
-      _.map(target, t => {
-        downsync(t, options);
-      })
-    );
-  });
+    downSyncAll(target, options);
+  })
+  .command("fup", "As upsync but requires a json configuration file.")
+  .argument("<file>", "configuration file")
+  .action(_.curry(callUpDownSync)("upsync"))
+  .command("fdown", "As downsync but requires a json configuration file.")
+  .argument("<file>", "configuration file")
+  .action(_.curry(callUpDownSync)("downsync"));
 
 prog.parse(process.argv);

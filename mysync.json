@@ -1,0 +1,18 @@
+[{
+        "target": ["/home/admin/projects"],
+        "options": {
+            "from": 100,
+            "pull": true,
+            "push": true
+        }
+    },
+    {
+        "target": ["/home/admin/dotfiles"],
+        "options": {
+            "exact": true,
+            "from": 100,
+            "pull": true,
+            "push": true
+        }
+    }
+]
