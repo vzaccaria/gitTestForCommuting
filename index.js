@@ -190,7 +190,7 @@ function downSyncAll(target, options) {
 }
 
 function callUpDownSync(dir, { file }) {
-  if (!path.isAbsolute(file)) {
+  if (!path.isAbsolute(file) && file[0] !== "~") {
     file = path.resolve(process.cwd(), file);
     let dta = require(file);
     return Promise.all(
