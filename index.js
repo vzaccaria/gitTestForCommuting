@@ -37,7 +37,7 @@ function downSyncDirectory(d, options) {
           spinner.fail(`${d} - Changes to be pushed`);
         } else {
           let cmd1 = `cd ${d} && git fetch`;
-          spinner.succeed(`${d} - Ready to fetch`);
+          spinner.info(`${d} - Ready to fetch`);
           let pspinner = ora(
             `${d} - Fetching (and optionally pulling)`
           ).start();
@@ -189,19 +189,18 @@ function downSyncAll(target, options) {
   );
 }
 
-function callUpDownSync(dir, { file }) {
+function callUpDownSync(dir, { file }, options) {
   if (!path.isAbsolute(file) && file[0] !== "~") {
     file = path.resolve(process.cwd(), file);
   }
   let dta = require(file);
   return Promise.all(
     _.map(dta, d => {
-      d.from = _.get(d, "from", 10);
-      d.exact = _.get(d, "exact", false);
+      let opt = _.defaults({}, options, d.options);
       if (dir === "upsync") {
-        upSyncAll(d.target, d.options);
+        upSyncAll(d.target, opt);
       } else {
-        downSyncAll(d.target, d.options);
+        downSyncAll(d.target, opt);
       }
     })
   );
@@ -233,9 +232,11 @@ prog
   })
   .command("fup", "As upsync but requires a json configuration file.")
   .argument("<file>", "configuration file")
-  .action(_.curry(callUpDownSync)("upsync"))
+  .option("--push", "Force push of branches that are ahead")
+  .action(_.partial(callUpDownSync, "upsync"))
   .command("fdown", "As downsync but requires a json configuration file.")
   .argument("<file>", "configuration file")
-  .action(_.curry(callUpDownSync)("downsync"));
+  .option("--pull", "Force pull of branches that are ahead")
+  .action(_.partial(callUpDownSync, "downsync"));
 
 prog.parse(process.argv);
