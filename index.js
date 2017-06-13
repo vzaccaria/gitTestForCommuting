@@ -22,7 +22,51 @@ let execP = command => {
   });
 };
 
-function checkDirectory(d, options) {
+function downSyncDirectory(d, options) {
+  let spinner = ora(`${d} - Checking`).start();
+  let command = `cd ${d} && git status`;
+  return execP(command).then(
+    ({ stdout }) => {
+      let toCommit = new RegExp("Changes not staged for commit");
+      let commitAhead = new RegExp("Your branch is ahead");
+      let untrackedFiles = new RegExp("untracked files present");
+      if (toCommit.test(stdout) || untrackedFiles.test(stdout)) {
+        spinner.fail(`${d} - Not clean.`);
+      } else {
+        if (commitAhead.test(stdout)) {
+          spinner.fail(`${d} - Changes to be pushed`);
+        } else {
+          let cmd1 = `cd ${d} && git fetch`;
+          spinner.succeed(`${d} - Ready to fetch`);
+          let pspinner = ora(
+            `${d} - Fetching (and optionally pulling)`
+          ).start();
+          return execP(cmd1).then(
+            () => {
+              if (options.pull) {
+                let cmd2 = `cd ${d} && git pull`;
+                return execP(cmd2).then(
+                  () => pspinner.succeed(`${d} - Correctly pulled`),
+                  () => pspinner.fail(`${d} - Can't pull`)
+                );
+              } else {
+                pspinner.succeed(`${d} - Correctly fetched`);
+              }
+            },
+            ({ stderr }) => {
+              pspinner.fail(`${d} - Can't fetch, got error ${stderr}`);
+            }
+          );
+        }
+      }
+    },
+    () => {
+      spinner.info(`${d} - Skipped as probably not a git repo`);
+    }
+  );
+}
+
+function upSyncDirectory(d, options) {
   let spinner = ora(`${d} - Checking`).start();
   let command = `cd ${d} && git status`;
   return execP(command).then(
@@ -44,7 +88,7 @@ function checkDirectory(d, options) {
                 pspinner.succeed(`${d} - Correctly pushed`);
               },
               ({ stderr }) => {
-                pspinner.fail(`${d} - Got error ${stderr}`);
+                pspinner.fail(`${d} - Can't push, got error ${stderr}`);
               }
             );
           } else {
@@ -59,7 +103,7 @@ function checkDirectory(d, options) {
         }
       }
     },
-    ({ stderr }) => {
+    () => {
       spinner.info(`${d} - Skipped as probably not a git repo`);
     }
   );
@@ -77,7 +121,7 @@ function getDirectories(target, options) {
   return directories;
 }
 
-function main(target, options) {
+function upsync(target, options) {
   if (!path.isAbsolute(target)) {
     target = path.resolve(process.cwd(), target);
   }
@@ -86,7 +130,6 @@ function main(target, options) {
     if (options.from > 0) {
       directories = _.filter(directories, f => {
         let ref = $m().subtract(options.from, "day");
-        let ft = $m(f.mtime);
         if ($m(f.mtime).isAfter(ref)) {
           return true;
         } else {
@@ -96,17 +139,47 @@ function main(target, options) {
     }
     return Promise.all(
       _.map(directories, d => {
-        checkDirectory(d.name, options);
+        upSyncDirectory(d.name, options);
       })
     );
   } else {
-    return checkDirectory(target, options);
+    return upSyncDirectory(target, options);
+  }
+}
+
+function downsync(target, options) {
+  if (!path.isAbsolute(target)) {
+    target = path.resolve(process.cwd(), target);
+  }
+  if (!options.exact) {
+    let directories = getDirectories(target, options);
+    if (options.from > 0) {
+      directories = _.filter(directories, f => {
+        let ref = $m().subtract(options.from, "day");
+        if ($m(f.mtime).isAfter(ref)) {
+          return true;
+        } else {
+          return false;
+        }
+      });
+    }
+    return Promise.all(
+      _.map(directories, d => {
+        downSyncDirectory(d.name, options);
+      })
+    );
+  } else {
+    return downSyncDirectory(target, options);
   }
 }
 
 prog
   .version("1.0.0")
   .description("Verifies git status of a target directory")
+  .command(
+    "upsync",
+    "Checks for any uncommitted changes. Can push towards origin."
+  )
   .argument("<target...>", "target directory")
   .option("--from <days>", "Look <days> behind (0 = all)", prog.INT, 10)
   .option("--push", "Force push of branches that are ahead")
@@ -115,7 +188,20 @@ prog
   .action(function({ target }, options) {
     return Promise.all(
       _.map(target, t => {
-        main(t, options);
+        upsync(t, options);
+      })
+    );
+  })
+  .command("downsync", "Fetches and optionally pulls from origin.")
+  .argument("<target...>", "target directory")
+  .option("--from <days>", "Look <days> behind (0 = all)", prog.INT, 10)
+  .option("--pull", "Force pull of branches that are ahead")
+  .option("--exact", "Targets are already git level repos")
+  .option("--depth1", "Look into subdirectories")
+  .action(function({ target }, options) {
+    return Promise.all(
+      _.map(target, t => {
+        downsync(t, options);
       })
     );
   });

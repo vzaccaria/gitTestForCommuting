@@ -7,7 +7,8 @@
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "bin": {
-        "gittestforcommuting": "./index.js"
+        "gittestforcommuting": "./index.js",
+        "git-verify": "./index.js"
     },
     "author": "",
     "license": "ISC",
