@@ -37,24 +37,20 @@ function downSyncDirectory(d, options) {
           spinner.fail(`${d} - Changes to be pushed`);
         } else {
           let cmd1 = `cd ${d} && git fetch`;
-          spinner.info(`${d} - Ready to fetch`);
-          let pspinner = ora(
-            `${d} - Fetching (and optionally pulling)`
-          ).start();
           return execP(cmd1).then(
             () => {
               if (options.pull) {
                 let cmd2 = `cd ${d} && git pull`;
                 return execP(cmd2).then(
-                  () => pspinner.succeed(`${d} - Correctly pulled`),
-                  () => pspinner.fail(`${d} - Can't pull`)
+                  () => spinner.succeed(`${d} - Correctly pulled`),
+                  () => spinner.fail(`${d} - Can't pull`)
                 );
               } else {
-                pspinner.succeed(`${d} - Correctly fetched`);
+                spinner.succeed(`${d} - Correctly fetched`);
               }
             },
             ({ stderr }) => {
-              pspinner.fail(`${d} - Can't fetch, got error ${stderr}`);
+              spinner.fail(`${d} - Can't fetch, got error ${stderr}`);
             }
           );
         }
